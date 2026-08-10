@@ -1,0 +1,3034 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <meta name="description" content="ABI Break-Even Loadout Calculator mit Raid-Kosten, Profit-/Loss-Szenarien, Diagramm und Loadout-Kostenrechner." />
+  <title>Break-Even Loadout Calculator</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0d0d0d;
+      --panel: #151515;
+      --panel-2: #101010;
+      --border: #2b2b2b;
+      --border-strong: #414141;
+      --text: #f2f2f2;
+      --muted: #a3a3a3;
+      --subtle: #737373;
+      --button: #e8e8e8;
+      --button-text: #111111;
+      --danger: #e98a8a;
+      --good-strong: #9fd3aa;
+      --good: #b8d9bf;
+      --neutral: #eeeeee;
+      --loss: #d9b8b8;
+      --loss-strong: #d89f9f;
+      --grid: rgba(255,255,255,.08);
+      --axis: rgba(255,255,255,.28);
+      --zero: rgba(255,255,255,.56);
+      --shadow: 0 16px 40px rgba(0,0,0,.20);
+      --radius: 14px;
+      --focus: rgba(255,255,255,.09);
+    }
+
+    * { box-sizing: border-box; }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    body {
+      padding: 32px 18px 48px;
+      overflow-x: hidden;
+    }
+
+    ::selection {
+      background: rgba(255,255,255,.16);
+      color: var(--text);
+    }
+
+    .app {
+      width: min(1040px, 100%);
+      margin: 0 auto;
+    }
+
+    .header {
+      margin-bottom: 22px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(26px, 4vw, 38px);
+      line-height: 1.12;
+      letter-spacing: -.035em;
+      font-weight: 760;
+    }
+
+    .subtitle {
+      margin: 10px 0 0;
+      max-width: 720px;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .metric-value,
+    .small-stat .value,
+    .scenario-preview,
+    .chart-tooltip,
+    input {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .calculator {
+      padding: 20px;
+    }
+
+    .input-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .field {
+      min-width: 0;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .035em;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    input {
+      width: 100%;
+      height: 46px;
+      padding: 0 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      outline: none;
+      background: var(--panel-2);
+      color: var(--text);
+      font: inherit;
+      font-size: 15px;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+
+    input::placeholder {
+      color: #5f6670;
+    }
+
+    input:focus {
+      border-color: var(--border-strong);
+      box-shadow: 0 0 0 3px var(--focus);
+    }
+
+    input:focus-visible,
+    select:focus-visible,
+    button:focus-visible {
+      outline: 2px solid rgba(255,255,255,.65);
+      outline-offset: 2px;
+    }
+
+    .suffix {
+      position: absolute;
+      right: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--subtle);
+      font-size: 13px;
+      pointer-events: none;
+    }
+
+    .has-suffix input { padding-right: 42px; }
+
+
+    .optional-inputs {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .optional-inputs-header {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .optional-inputs-title {
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: .055em;
+      text-transform: uppercase;
+    }
+
+    .optional-inputs-note {
+      color: var(--subtle);
+      font-size: 11px;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    button {
+      min-width: 140px;
+      height: 44px;
+      border: 0;
+      border-radius: 10px;
+      padding: 0 18px;
+      background: var(--button);
+      color: var(--button-text);
+      font: inherit;
+      font-weight: 750;
+      cursor: pointer;
+      transition: transform .08s ease, opacity .15s ease;
+    }
+
+    @media (hover: hover) {
+      button:hover { opacity: .94; }
+      .remove-scenario:hover {
+        color: var(--text);
+        border-color: var(--border-strong);
+      }
+    }
+
+    button:active { transform: translateY(1px); }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: .55;
+    }
+
+    .error {
+      min-height: 20px;
+      color: var(--danger);
+      font-size: 13px;
+    }
+
+    .results {
+      display: none;
+      margin-top: 18px;
+      gap: 14px;
+    }
+
+    .results.visible {
+      display: grid;
+    }
+
+    .hero-result {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 14px;
+    }
+
+    .metric,
+    .small-stat {
+      min-width: 0;
+    }
+
+    .metric {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel-2);
+      padding: 16px;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      margin-top: 8px;
+      font-size: clamp(24px, 4vw, 36px);
+      font-weight: 780;
+      letter-spacing: -.035em;
+    }
+
+    .metric-note {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .small-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 10px;
+    }
+
+    .small-stat {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel-2);
+      padding: 13px;
+    }
+
+    .small-stat .name {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .small-stat .value {
+      margin-top: 6px;
+      font-size: 17px;
+      font-weight: 720;
+    }
+
+
+    .scenario-panel {
+      margin-top: 18px;
+      padding: 18px;
+    }
+
+    .scenario-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .scenario-title {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 750;
+    }
+
+    .scenario-subtitle {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      max-width: 720px;
+    }
+
+    .scenario-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .scenario-row {
+      display: grid;
+      grid-template-columns: 130px minmax(120px, 180px) minmax(0, 1fr) 38px;
+      gap: 10px;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel-2);
+      padding: 10px;
+    }
+
+    .scenario-row select,
+    .scenario-row input {
+      height: 40px;
+    }
+
+    .scenario-row select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      outline: none;
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 0 10px;
+      font: inherit;
+      font-size: 14px;
+    }
+
+    .scenario-row select:focus {
+      border-color: var(--border-strong);
+      box-shadow: 0 0 0 3px var(--focus);
+    }
+
+    .scenario-preview {
+      min-width: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .scenario-preview strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .remove-scenario {
+      width: 38px;
+      min-width: 38px;
+      height: 38px;
+      padding: 0;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    .scenario-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .secondary-button {
+      min-width: 0;
+      height: 40px;
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border-strong);
+      padding: 0 14px;
+    }
+
+    .scenario-help {
+      color: var(--subtle);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .scenario-empty {
+      color: var(--subtle);
+      font-size: 12px;
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      padding: 14px;
+    }
+
+
+    .loadout-panel {
+      margin-top: 18px;
+      padding: 18px;
+    }
+
+    .loadout-header {
+      margin-bottom: 14px;
+    }
+
+    .loadout-title {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 750;
+    }
+
+    .loadout-subtitle {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      max-width: 760px;
+    }
+
+    .loadout-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .loadout-result {
+      display: none;
+      margin-top: 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel-2);
+      padding: 16px;
+    }
+
+    .loadout-result.visible {
+      display: block;
+    }
+
+    .loadout-result-label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .loadout-result-value {
+      margin-top: 7px;
+      font-size: clamp(22px, 3.5vw, 30px);
+      font-weight: 780;
+      letter-spacing: -.03em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .loadout-result-note {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 820px) {
+      .loadout-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 520px) {
+      .loadout-panel {
+        padding: 14px;
+      }
+
+      .loadout-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .chart-card {
+      margin-top: 18px;
+      padding: 18px;
+    }
+
+    .chart-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 14px;
+    }
+
+    .chart-title {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 750;
+    }
+
+    .chart-subtitle {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px 12px;
+      max-width: 620px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .legend-line {
+      width: 18px;
+      height: 2px;
+      border-radius: 3px;
+      background: currentColor;
+    }
+
+    .chart-wrap {
+      position: relative;
+      width: 100%;
+      height: 430px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel-2);
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+
+    .empty-chart {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: var(--subtle);
+      font-size: 13px;
+      pointer-events: none;
+    }
+
+    .chart-note {
+      margin-top: 10px;
+      color: var(--subtle);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+
+    .chart-tooltip {
+      position: absolute;
+      display: none;
+      min-width: 130px;
+      padding: 8px 10px;
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      background: rgba(16, 16, 16, .97);
+      color: var(--text);
+      font-size: 11px;
+      line-height: 1.4;
+      pointer-events: none;
+      z-index: 3;
+      box-shadow: 0 8px 22px rgba(0,0,0,.28);
+      transform: translate(10px, -50%);
+    }
+
+    .chart-tooltip .tt-name {
+      font-weight: 750;
+      margin-bottom: 3px;
+    }
+
+    .chart-tooltip .tt-row {
+      color: var(--muted);
+    }
+
+    .chart-tooltip .tt-value {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+
+    @media (max-width: 820px) {
+      .input-grid,
+      .hero-result {
+        grid-template-columns: 1fr;
+      }
+
+      .chart-header,
+      .scenario-header {
+        flex-direction: column;
+      }
+
+      .scenario-row {
+        grid-template-columns: 110px 140px minmax(0, 1fr) 38px;
+      }
+
+      .legend {
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 520px) {
+      body { padding: 22px 12px 36px; }
+      .calculator, .scenario-panel, .chart-card { padding: 14px; }
+      .small-stat-grid { grid-template-columns: 1fr; }
+
+      .scenario-row {
+        grid-template-columns: 1fr 1fr 38px;
+      }
+
+      .scenario-preview {
+        grid-column: 1 / -1;
+        grid-row: 2;
+      }
+
+      .actions { align-items: flex-start; flex-direction: column; }
+      button { width: 100%; }
+      .chart-wrap { height: 360px; }
+    }
+  
+    /* =========================================================
+       Professional dark refresh
+       Visual-only override layer. Core calculator logic unchanged.
+       Phi (≈1.618) is used for proportional spacing and layout ratios.
+       ========================================================= */
+    :root {
+      --phi: 1.618;
+      --bg: #0a0a0a;
+      --panel: #121212;
+      --panel-2: #0e0e0e;
+      --panel-3: #181818;
+      --border: #262626;
+      --border-strong: #3a3a3a;
+      --text: #f4f4f4;
+      --muted: #a7a7a7;
+      --subtle: #717171;
+      --button: #f0f0f0;
+      --button-text: #101010;
+      --danger: #e59a9a;
+      --good-strong: #9fcca8;
+      --good: #b6d2bb;
+      --neutral: #eeeeee;
+      --loss: #d1b0b0;
+      --loss-strong: #d29898;
+      --grid: rgba(255,255,255,.055);
+      --axis: rgba(255,255,255,.22);
+      --zero: rgba(255,255,255,.50);
+      --shadow: 0 18px 50px rgba(0,0,0,.24);
+      --shadow-soft: 0 8px 24px rgba(0,0,0,.16);
+      --radius: 16px;
+      --radius-sm: 11px;
+      --focus: rgba(255,255,255,.085);
+      --space-1: 8px;
+      --space-2: 13px;
+      --space-3: 21px;
+      --space-4: 34px;
+      --space-5: 55px;
+    }
+
+    html {
+      background: var(--bg);
+    }
+
+    body {
+      padding: 42px 20px 64px;
+      background:
+        radial-gradient(circle at 50% -10%, rgba(255,255,255,.035), transparent 36%),
+        var(--bg);
+    }
+
+    .app {
+      width: min(1120px, 100%);
+    }
+
+    .header {
+      margin-bottom: var(--space-4);
+      padding: 0 2px;
+    }
+
+    .eyebrow {
+      margin-bottom: 10px;
+      font-size: 11px;
+      letter-spacing: .17em;
+      color: #909090;
+    }
+
+    h1 {
+      max-width: 760px;
+      font-size: clamp(31px, 5vw, 48px);
+      line-height: 1.04;
+      letter-spacing: -.045em;
+      font-weight: 780;
+    }
+
+    .subtitle {
+      margin-top: 14px;
+      max-width: 760px;
+      font-size: 13px;
+      line-height: 1.68;
+      color: #969696;
+    }
+
+    .card {
+      border-color: var(--border);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.014), transparent 22%),
+        var(--panel);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .calculator {
+      padding: 26px;
+    }
+
+    .input-grid {
+      gap: var(--space-2);
+    }
+
+    .field label {
+      margin-bottom: 7px;
+      font-size: 10.5px;
+      font-weight: 760;
+      letter-spacing: .075em;
+      color: #8d8d8d;
+    }
+
+    input,
+    .scenario-row select {
+      border-color: #292929;
+      background: #0c0c0c;
+      border-radius: var(--radius-sm);
+    }
+
+    input {
+      height: 48px;
+      padding: 0 15px;
+      font-size: 14px;
+    }
+
+    input::placeholder {
+      color: #565656;
+    }
+
+    input:hover,
+    .scenario-row select:hover {
+      border-color: #333333;
+    }
+
+    input:focus,
+    .scenario-row select:focus {
+      border-color: #4a4a4a;
+      box-shadow: 0 0 0 3px rgba(255,255,255,.055);
+    }
+
+    .optional-inputs {
+      margin-top: var(--space-3);
+      padding-top: var(--space-3);
+      border-top-color: #232323;
+    }
+
+    .optional-inputs-header {
+      margin-bottom: 12px;
+    }
+
+    .optional-inputs-title {
+      font-size: 10.5px;
+      letter-spacing: .09em;
+    }
+
+    .optional-inputs-note {
+      color: #666666;
+    }
+
+    .actions {
+      margin-top: var(--space-3);
+      gap: 14px;
+    }
+
+    button {
+      min-width: 150px;
+      height: 46px;
+      border-radius: 11px;
+      padding: 0 20px;
+      font-size: 13px;
+      letter-spacing: .01em;
+      box-shadow: 0 1px 0 rgba(255,255,255,.14) inset;
+    }
+
+    @media (hover: hover) {
+      button:hover {
+        opacity: 1;
+        transform: translateY(-1px);
+      }
+
+      .secondary-button:hover,
+      .remove-scenario:hover {
+        background: rgba(255,255,255,.035);
+      }
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .results {
+      margin-top: var(--space-3);
+      gap: var(--space-2);
+    }
+
+    .hero-result {
+      /* Phi-based main/secondary result proportion */
+      grid-template-columns: 1.618fr 1fr;
+      gap: var(--space-2);
+      align-items: stretch;
+    }
+
+    .metric {
+      display: flex;
+      min-height: 100%;
+      flex-direction: column;
+      justify-content: center;
+      border-color: #2b2b2b;
+      border-radius: 14px;
+      padding: 24px;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.025), transparent 48%),
+        #0d0d0d;
+    }
+
+    .metric-label {
+      font-size: 10.5px;
+      letter-spacing: .085em;
+      color: #8e8e8e;
+    }
+
+    .metric-value {
+      margin-top: 10px;
+      font-size: clamp(30px, 5vw, 44px);
+      line-height: 1;
+      letter-spacing: -.048em;
+    }
+
+    .metric-note {
+      max-width: 570px;
+      margin-top: 12px;
+      line-height: 1.58;
+      color: #858585;
+    }
+
+    .small-stat-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
+    }
+
+    .small-stat {
+      min-height: 88px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      border-color: #282828;
+      border-radius: 12px;
+      padding: 14px;
+      background: #0d0d0d;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .small-stat .name {
+      font-size: 9.5px;
+      letter-spacing: .075em;
+      color: #777777;
+    }
+
+    .small-stat .value {
+      margin-top: 7px;
+      font-size: 16px;
+      line-height: 1.2;
+    }
+
+    .scenario-panel,
+    .chart-card,
+    .loadout-panel {
+      margin-top: var(--space-3);
+      padding: 22px;
+    }
+
+    .scenario-header,
+    .chart-header,
+    .loadout-header {
+      margin-bottom: 16px;
+    }
+
+    .scenario-title,
+    .chart-title,
+    .loadout-title {
+      font-size: 16px;
+      letter-spacing: -.012em;
+      font-weight: 760;
+    }
+
+    .scenario-subtitle,
+    .chart-subtitle,
+    .loadout-subtitle {
+      margin-top: 6px;
+      font-size: 11.5px;
+      line-height: 1.62;
+      color: #8f8f8f;
+    }
+
+    .scenario-row {
+      grid-template-columns: 126px minmax(130px, 176px) minmax(0, 1fr) 38px;
+      gap: 11px;
+      border-color: #272727;
+      border-radius: 12px;
+      background: #0d0d0d;
+      padding: 11px;
+    }
+
+    .scenario-preview {
+      font-size: 11.5px;
+      color: #8a8a8a;
+    }
+
+    .remove-scenario {
+      border-color: #303030;
+      background: #111111;
+    }
+
+    .secondary-button {
+      border-color: #343434;
+      background: #111111;
+      color: #e8e8e8;
+      box-shadow: none;
+    }
+
+    .scenario-help {
+      color: #676767;
+    }
+
+    .scenario-empty {
+      border-color: #303030;
+      background: rgba(255,255,255,.012);
+      color: #707070;
+    }
+
+    .chart-card {
+      padding-bottom: 18px;
+    }
+
+    .chart-header {
+      gap: var(--space-3);
+    }
+
+    .legend {
+      gap: 8px 14px;
+    }
+
+    .legend-item {
+      font-size: 10.5px;
+      color: #919191;
+    }
+
+    .legend-line {
+      width: 20px;
+    }
+
+    .chart-wrap {
+      height: 460px;
+      border-color: #292929;
+      border-radius: 14px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.009), transparent 30%),
+        #0b0b0b;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.02);
+    }
+
+    .chart-note {
+      margin-top: 12px;
+      color: #686868;
+    }
+
+    .chart-tooltip {
+      border-color: #3a3a3a;
+      background: rgba(12,12,12,.97);
+      border-radius: 10px;
+      box-shadow: 0 12px 28px rgba(0,0,0,.34);
+    }
+
+    .loadout-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--space-2);
+    }
+
+    .loadout-result {
+      margin-top: var(--space-3);
+      border-color: #2b2b2b;
+      border-radius: 14px;
+      background: #0d0d0d;
+      padding: 20px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .loadout-result-label {
+      font-size: 10px;
+      letter-spacing: .085em;
+      color: #7f7f7f;
+    }
+
+    .loadout-result-value {
+      margin-top: 8px;
+      font-size: clamp(27px, 4vw, 36px);
+      line-height: 1;
+      letter-spacing: -.04em;
+    }
+
+    .loadout-result-note {
+      margin-top: 9px;
+      line-height: 1.55;
+      color: #848484;
+    }
+
+    .error {
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 900px) {
+      .hero-result {
+        grid-template-columns: 1fr;
+      }
+
+      .small-stat-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .loadout-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 680px) {
+      body {
+        padding: 28px 14px 46px;
+      }
+
+      .header {
+        margin-bottom: 24px;
+      }
+
+      .calculator,
+      .scenario-panel,
+      .chart-card,
+      .loadout-panel {
+        padding: 16px;
+      }
+
+      .small-stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .scenario-row {
+        grid-template-columns: 1fr 1fr 38px;
+      }
+
+      .scenario-preview {
+        grid-column: 1 / -1;
+      }
+
+      .chart-wrap {
+        height: 390px;
+      }
+    }
+
+    @media (max-width: 460px) {
+      body {
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+
+      h1 {
+        font-size: 31px;
+      }
+
+      .small-stat-grid,
+      .loadout-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .metric {
+        padding: 19px;
+      }
+
+      .metric-value {
+        font-size: 31px;
+      }
+
+      .chart-wrap {
+        height: 350px;
+      }
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+    }
+
+    .value-rolling {
+      will-change: contents;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .chart-wrap.chart-reveal canvas {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+  
+
+      .value-rolling {
+        animation-duration: 180ms !important;
+      }
+
+      .chart-wrap.chart-reveal canvas {
+        animation-duration: 180ms !important;
+      }
+    }
+
+    /* Smooth animation refinement */
+
+    .value-rolling {
+      animation: resultRollSmooth 470ms cubic-bezier(.22,.61,.36,1) both;
+    }
+
+    @keyframes resultRollSmooth {
+      0% {
+        opacity: .46;
+        transform: translateY(2px);
+      }
+      42% {
+        opacity: .82;
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .chart-wrap.chart-reveal canvas {
+      transform-origin: left center;
+      animation: chartRevealSmooth 460ms cubic-bezier(.22,.61,.36,1) both;
+    }
+
+    @keyframes chartRevealSmooth {
+      0% {
+        opacity: .24;
+        transform: scaleX(.08);
+      }
+      100% {
+        opacity: 1;
+        transform: scaleX(1);
+      }
+    }
+
+    /* Final responsive / mobile polish */
+    canvas {
+      touch-action: pan-y pinch-zoom;
+    }
+
+    @media (max-width: 680px) {
+      input,
+      .scenario-row select {
+        /* Prevents unwanted automatic zoom on iOS while keeping desktop typography unchanged. */
+        font-size: 16px;
+      }
+
+      .field label {
+        margin-bottom: 6px;
+      }
+
+      .actions {
+        gap: 10px;
+      }
+
+      .remove-scenario {
+        width: 44px;
+        min-width: 44px;
+        height: 44px;
+      }
+
+      .chart-tooltip {
+        max-width: min(190px, calc(100% - 24px));
+        font-size: 11px;
+      }
+    }
+
+    @media (max-width: 460px) {
+      .card {
+        border-radius: 14px;
+      }
+
+      .calculator,
+      .scenario-panel,
+      .chart-card,
+      .loadout-panel {
+        padding: 14px;
+      }
+
+      .input-grid {
+        gap: 11px;
+      }
+
+      .small-stat {
+        min-height: 80px;
+      }
+
+      .chart-header {
+        gap: 12px;
+      }
+
+      .legend {
+        gap: 7px 11px;
+      }
+    }
+
+    /* Final compact mobile layout
+       Phi is used subtly for proportional spacing and the primary input split. */
+    @media (max-width: 680px) {
+      body {
+        padding-top: 22px;
+        padding-bottom: 34px;
+      }
+
+      .header {
+        margin-bottom: 18px;
+      }
+
+      .eyebrow {
+        margin-bottom: 7px;
+      }
+
+      h1 {
+        font-size: clamp(28px, 8.8vw, 34px);
+        line-height: 1.02;
+      }
+
+      .subtitle {
+        margin-top: 9px;
+        max-width: 540px;
+        font-size: 11.5px;
+        line-height: 1.48;
+      }
+
+      .calculator,
+      .scenario-panel,
+      .chart-card,
+      .loadout-panel {
+        padding: 14px;
+      }
+
+      .scenario-panel,
+      .chart-card,
+      .loadout-panel {
+        margin-top: 14px;
+      }
+
+      /* Primary inputs:
+         Total Earned receives the larger phi-weighted row,
+         Raids and Extraction share the second row symmetrically. */
+      .calculator > .input-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .calculator > .input-grid > .field:first-child {
+        grid-column: 1 / -1;
+      }
+
+      .optional-inputs {
+        margin-top: 14px;
+        padding-top: 14px;
+      }
+
+      .optional-inputs-header {
+        margin-bottom: 9px;
+      }
+
+      .optional-inputs > .input-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .optional-inputs > .input-grid > .field:last-child {
+        grid-column: 1 / -1;
+      }
+
+      input {
+        height: 44px;
+      }
+
+      .actions {
+        margin-top: 14px;
+      }
+
+      .results {
+        margin-top: 14px;
+      }
+
+      .metric {
+        padding: 16px;
+      }
+
+      .metric-value {
+        margin-top: 7px;
+        font-size: clamp(28px, 8.2vw, 34px);
+      }
+
+      .metric-note {
+        margin-top: 8px;
+        font-size: 11px;
+        line-height: 1.4;
+      }
+
+      /* Keep information dense but readable: two columns even on small phones. */
+      .small-stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .small-stat {
+        min-height: 72px;
+        padding: 11px;
+      }
+
+      .small-stat .name {
+        font-size: 8.8px;
+        line-height: 1.2;
+      }
+
+      .small-stat .value {
+        margin-top: 5px;
+        font-size: 14px;
+      }
+
+      .scenario-header,
+      .loadout-header,
+      .chart-header {
+        margin-bottom: 11px;
+      }
+
+      .scenario-subtitle,
+      .loadout-subtitle,
+      .chart-subtitle {
+        margin-top: 4px;
+        font-size: 11px;
+        line-height: 1.42;
+      }
+
+      .scenario-list {
+        gap: 8px;
+      }
+
+      .scenario-row {
+        gap: 8px;
+        padding: 8px;
+      }
+
+      .scenario-row select,
+      .scenario-row input {
+        height: 42px;
+      }
+
+      .scenario-actions {
+        margin-top: 9px;
+      }
+
+      .scenario-help {
+        font-size: 10px;
+        line-height: 1.3;
+      }
+
+      .chart-wrap {
+        height: 390px;
+      }
+
+      .chart-note {
+        margin-top: 8px;
+        font-size: 10.5px;
+      }
+
+      /* Loadout builder is the biggest vertical saver: 2 columns on phones. */
+      .loadout-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 9px;
+      }
+
+      .loadout-result {
+        margin-top: 12px;
+        padding: 15px;
+      }
+
+      .loadout-result-value {
+        font-size: clamp(25px, 7vw, 31px);
+      }
+    }
+
+    @media (max-width: 390px) {
+      body {
+        padding-left: 8px;
+        padding-right: 8px;
+      }
+
+      .calculator,
+      .scenario-panel,
+      .chart-card,
+      .loadout-panel {
+        padding: 12px;
+      }
+
+      .calculator > .input-grid,
+      .optional-inputs > .input-grid,
+      .loadout-grid {
+        gap: 8px;
+      }
+
+      .field label {
+        font-size: 9.5px;
+        letter-spacing: .055em;
+      }
+
+      .small-stat {
+        padding: 9px;
+      }
+
+      .small-stat .value {
+        font-size: 13px;
+      }
+
+      .chart-wrap {
+        height: 360px;
+      }
+    }
+
+    /* Final visual balance */
+    :root {
+      --phi-inv: .618;
+      --pi: 3.141592653589793;
+    }
+
+    .small-stat-grid .small-stat:last-child {
+      grid-column: 1 / -1;
+    }
+
+    .small-stat-grid .small-stat:last-child .value {
+      font-size: 18px;
+    }
+
+    .value-rolling {
+      will-change: opacity, transform;
+    }
+
+    @media (max-width: 680px) {
+      .small-stat-grid .small-stat:last-child {
+        min-height: 66px;
+      }
+
+      .small-stat-grid .small-stat:last-child .value {
+        font-size: 15px;
+      }
+    }
+
+  </style>
+</head>
+<body>
+<main class="app">
+    <header class="header">
+      <p class="eyebrow">ABI Loadout Calculator</p>
+      <h1>Break-Even Loadout</h1>
+      <p class="subtitle">
+        Break-Even, Profit/Loss und Loadout-Kosten aus deinen Raid-Daten.
+        Optionale Ammo- und Utility-Kosten werden pro Raid berücksichtigt.
+      </p>
+    </header>
+
+    <section class="card calculator" aria-label="Break-Even Rechner">
+      <div class="input-grid">
+        <div class="field">
+          <label for="totalEarned">TOTAL EARNED</label>
+          <input id="totalEarned" type="text" inputmode="decimal" placeholder="z. B. 5.000.000" autocomplete="off" spellcheck="false" aria-describedby="totalEarnedHint" />
+          <span id="totalEarnedHint" class="sr-only">Gesamter bisheriger Loot-Wert in Koen.</span>
+        </div>
+
+        <div class="field">
+          <label for="totalRaids">TOTAL RAIDS</label>
+          <input id="totalRaids" type="number" min="1" step="1" inputmode="numeric" placeholder="z. B. 100" autocomplete="off" />
+        </div>
+
+        <div class="field">
+          <label for="extractionRate">EXTRACTION RATE</label>
+          <div class="input-wrap has-suffix">
+            <input id="extractionRate" type="number" min="0" max="100" step="0.1" inputmode="decimal" placeholder="z. B. 40" autocomplete="off" />
+            <span class="suffix">%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="optional-inputs">
+        <div class="optional-inputs-header">
+          <p class="optional-inputs-title">Optional Raid Costs</p>
+          <span class="optional-inputs-note">Leer = 0 Koen</span>
+        </div>
+
+        <div class="input-grid">
+          <div class="field">
+            <label for="ammoCostPerShot">AMMO COST / SHOT</label>
+            <input id="ammoCostPerShot" type="text" inputmode="decimal" placeholder="z. B. 2.000" autocomplete="off" spellcheck="false" />
+          </div>
+
+          <div class="field">
+            <label for="shotsPerRaid">SHOTS / RAID</label>
+            <input id="shotsPerRaid" type="number" min="0" step="1" inputmode="numeric" placeholder="z. B. 60" autocomplete="off" />
+          </div>
+
+          <div class="field">
+            <label for="utilityCostPerRaid">UTILITY COST / RAID</label>
+            <input id="utilityCostPerRaid" type="text" inputmode="decimal" placeholder="z. B. 100.000" autocomplete="off" spellcheck="false" />
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="calculateBtn" type="button" aria-controls="results chartWrap">Calculate</button>
+        <div id="error" class="error" role="alert" aria-live="polite"></div>
+      </div>
+
+      <div id="results" class="results" role="status" aria-live="polite" aria-atomic="true">
+        <div class="hero-result">
+          <div class="metric">
+            <div class="metric-label">Break Even Loadout</div>
+            <div id="breakEvenValue" class="metric-value">—</div>
+            <div class="metric-note">
+              Maximaler Loadout-Wert für langfristigen Break Even.
+            </div>
+          </div>
+
+          <div class="small-stat-grid">
+            <div class="small-stat">
+              <div class="name">Successful Extractions</div>
+              <div id="successfulExtractions" class="value">—</div>
+            </div>
+            <div class="small-stat">
+              <div class="name">Average Extract</div>
+              <div id="earnPerExtraction" class="value">—</div>
+            </div>
+            <div class="small-stat">
+              <div class="name">Death Rate</div>
+              <div id="deathRateValue" class="value">—</div>
+            </div>
+            <div class="small-stat">
+              <div class="name">Expected Loot / Raid</div>
+              <div id="expectedLootValue" class="value">—</div>
+            </div>
+            <div class="small-stat">
+              <div class="name">Ammo Cost / Raid</div>
+              <div id="ammoCostPerRaidValue" class="value">—</div>
+            </div>
+            <div class="small-stat">
+              <div class="name">Utility Cost / Raid</div>
+              <div id="utilityCostValue" class="value">—</div>
+            </div>
+            <div class="small-stat">
+              <div class="name">Additional Raid Costs</div>
+              <div id="additionalRaidCostsValue" class="value">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card scenario-panel" aria-labelledby="scenarioTitle">
+      <div class="scenario-header">
+        <div>
+          <h2 id="scenarioTitle" class="scenario-title">Custom Profit / Loss Lines</h2>
+          <p class="scenario-subtitle">
+            Eigene Profit-/Loss-Ziele werden direkt aus der aktuellen Break-Even-Basis berechnet
+            und live im Diagramm aktualisiert.
+          </p>
+        </div>
+      </div>
+
+      <div id="scenarioList" class="scenario-list">
+        <div id="scenarioEmpty" class="scenario-empty">
+          Noch keine eigene Linie. Im Diagramm wird zunächst nur Break Even angezeigt.
+        </div>
+      </div>
+
+      <div class="scenario-actions">
+        <button id="addScenarioBtn" type="button" class="secondary-button">+ Add Line</button>
+        <span class="scenario-help">Profit: z. B. 2 oder 300 · Loss: z. B. 20 oder 50</span>
+      </div>
+    </section>
+
+    <section class="card chart-card" aria-labelledby="chartTitle">
+      <div class="chart-header">
+        <div>
+          <h2 id="chartTitle" class="chart-title">Profit / Loss over Raids</h2>
+          <p class="chart-subtitle">Break Even, eigene Szenarien und dein aktuelles Loadout über 50 Raids.</p>
+        </div>
+
+        <div id="chartLegend" class="legend" aria-label="Diagramm Legende">
+          <span class="legend-item" style="color: var(--neutral)"><span class="legend-line"></span>Break Even</span>
+        </div>
+      </div>
+
+      <div id="chartWrap" class="chart-wrap">
+        <canvas id="chart" role="img" aria-label="Profit und Loss Diagramm" aria-describedby="chartSummary">Profit-/Loss-Diagramm über 50 Raids.</canvas>
+        <div id="chartSummary" class="sr-only">Noch keine Berechnung vorhanden.</div>
+        <div id="chartTooltip" class="chart-tooltip" role="status" aria-live="polite"></div>
+        <div id="emptyChart" class="empty-chart">Werte eingeben und Calculate drücken.</div>
+      </div>
+
+      <div class="chart-note">
+        Szenarien werden live aus der aktuellen Basis berechnet. Hover oder Tap zeigt Raid und Profit/Loss.
+      </div>
+    </section>
+
+    <section class="card loadout-panel" aria-labelledby="loadoutTitle">
+      <div class="loadout-header">
+        <h2 id="loadoutTitle" class="loadout-title">Loadout Cost Calculator</h2>
+        <p class="loadout-subtitle">
+          Nur gewünschte Komponenten eintragen. Leere Felder zählen als 0 Koen.
+          Ammo/Utility gelten für Current Loadout als konkrete Raid-Kosten; leere Werte nutzen die oberen Durchschnittskosten.
+        </p>
+      </div>
+
+      <div class="loadout-grid">
+        <div class="field">
+          <label for="loadoutWeapon">WEAPON</label>
+          <input id="loadoutWeapon" type="text" inputmode="decimal" placeholder="z. B. 350.000" autocomplete="off" spellcheck="false" />
+        </div>
+
+        <div class="field">
+          <label for="loadoutHelmet">HELMET</label>
+          <input id="loadoutHelmet" type="text" inputmode="decimal" placeholder="z. B. 120.000" autocomplete="off" spellcheck="false" />
+        </div>
+
+        <div class="field">
+          <label for="loadoutArmor">ARMOR</label>
+          <input id="loadoutArmor" type="text" inputmode="decimal" placeholder="z. B. 280.000" autocomplete="off" spellcheck="false" />
+        </div>
+
+        <div class="field">
+          <label for="loadoutHeadset">HEADSET</label>
+          <input id="loadoutHeadset" type="text" inputmode="decimal" placeholder="z. B. 60.000" autocomplete="off" spellcheck="false" />
+        </div>
+
+        <div class="field">
+          <label for="loadoutRig">RIG</label>
+          <input id="loadoutRig" type="text" inputmode="decimal" placeholder="z. B. 80.000" autocomplete="off" spellcheck="false" />
+        </div>
+
+        <div class="field">
+          <label for="loadoutBackpack">BACKPACK</label>
+          <input id="loadoutBackpack" type="text" inputmode="decimal" placeholder="z. B. 50.000" autocomplete="off" spellcheck="false" />
+        </div>
+
+        <div class="field">
+          <label for="loadoutAmmo">AMMO</label>
+          <input id="loadoutAmmo" type="text" inputmode="decimal" placeholder="z. B. 120.000" autocomplete="off" spellcheck="false" />
+        </div>
+
+        <div class="field">
+          <label for="loadoutUtility">UTILITY</label>
+          <input id="loadoutUtility" type="text" inputmode="decimal" placeholder="z. B. 100.000" autocomplete="off" spellcheck="false" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="calculateLoadoutBtn" type="button">Calculate Loadout</button>
+        <div id="loadoutError" class="error" role="alert" aria-live="polite"></div>
+      </div>
+
+      <div id="loadoutResult" class="loadout-result" role="status" aria-live="polite">
+        <div class="loadout-result-label">Total Loadout Cost</div>
+        <div id="totalLoadoutCostValue" class="loadout-result-value">—</div>
+        <div id="loadoutResultNote" class="loadout-result-note">
+          Wird als Current Loadout im Profit-/Loss-Diagramm angezeigt.
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const MAX_CHART_RAIDS = 50;
+
+      const $ = (id) => document.getElementById(id);
+
+      const totalEarnedInput = $("totalEarned");
+      const totalRaidsInput = $("totalRaids");
+      const extractionRateInput = $("extractionRate");
+      const ammoCostPerShotInput = $("ammoCostPerShot");
+      const shotsPerRaidInput = $("shotsPerRaid");
+      const utilityCostPerRaidInput = $("utilityCostPerRaid");
+      const calculateBtn = $("calculateBtn");
+      const errorEl = $("error");
+      const resultsEl = $("results");
+      const canvas = $("chart");
+      const chartWrap = $("chartWrap");
+      const chartTooltip = $("chartTooltip");
+      const emptyChart = $("emptyChart");
+      const scenarioList = $("scenarioList");
+      const scenarioEmpty = $("scenarioEmpty");
+      const addScenarioBtn = $("addScenarioBtn");
+      const chartLegend = $("chartLegend");
+      const chartSummary = $("chartSummary");
+
+      const calculateLoadoutBtn = $("calculateLoadoutBtn");
+      const loadoutError = $("loadoutError");
+      const loadoutResult = $("loadoutResult");
+      const totalLoadoutCostValue = $("totalLoadoutCostValue");
+      const loadoutResultNote = $("loadoutResultNote");
+
+      const loadoutFields = {
+        weapon: $("loadoutWeapon"),
+        helmet: $("loadoutHelmet"),
+        armor: $("loadoutArmor"),
+        headset: $("loadoutHeadset"),
+        rig: $("loadoutRig"),
+        backpack: $("loadoutBackpack"),
+        ammo: $("loadoutAmmo"),
+        utility: $("loadoutUtility")
+      };
+
+      const loadoutInputs = Object.values(loadoutFields);
+
+      let lastChartData = null;
+      let lastRenderedChart = null;
+      let scenarioCounter = 0;
+      let currentBaseData = null;
+      let currentLoadoutData = null;
+      let lastHoverKey = "";
+      let chartRevealPending = false;
+
+      const RATE_EPSILON = 1e-12;
+      const MONEY_EPSILON = 0.5;
+      const rollTokens = new WeakMap();
+
+      const formatKoen = new Intl.NumberFormat("de-DE", {
+        maximumFractionDigits: 0
+      });
+
+      const formatNumber = new Intl.NumberFormat("de-DE", {
+        maximumFractionDigits: 1
+      });
+
+      function parseFlexibleNumber(value) {
+        if (typeof value !== "string") return Number(value);
+
+        let cleaned = value.trim().replace(/\s/g, "");
+        if (!cleaned) return NaN;
+
+        // Unterstützt typische Eingaben wie 5.000.000, 5,000,000 oder 5000000.
+        const dots = (cleaned.match(/\./g) || []).length;
+        const commas = (cleaned.match(/,/g) || []).length;
+
+        if (dots > 1 && commas === 0) {
+          cleaned = cleaned.replace(/\./g, "");
+        } else if (commas > 1 && dots === 0) {
+          cleaned = cleaned.replace(/,/g, "");
+        } else if (dots > 0 && commas > 0) {
+          const lastDot = cleaned.lastIndexOf(".");
+          const lastComma = cleaned.lastIndexOf(",");
+          const decimalSep = lastDot > lastComma ? "." : ",";
+          const thousandsSep = decimalSep === "." ? "," : ".";
+          cleaned = cleaned.replace(new RegExp("\\" + thousandsSep, "g"), "");
+          if (decimalSep === ",") cleaned = cleaned.replace(",", ".");
+        } else if (commas === 1 && dots === 0) {
+          const parts = cleaned.split(",");
+          if (parts[1] && parts[1].length === 3 && parts[0].length >= 1) {
+            cleaned = parts.join("");
+          } else {
+            cleaned = cleaned.replace(",", ".");
+          }
+        } else if (dots === 1 && commas === 0) {
+          const parts = cleaned.split(".");
+          if (parts[1] && parts[1].length === 3 && parts[0].length >= 1) {
+            cleaned = parts.join("");
+          }
+        }
+
+        return Number(cleaned);
+      }
+
+      const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+      function scrambleDigits(text) {
+        return text.replace(/\d/g, () => String(Math.floor(Math.random() * 10)));
+      }
+
+      function rollResultText(elements, duration = 500) {
+        const targets = elements
+          .filter(Boolean)
+          .map(element => {
+            const token = (rollTokens.get(element) || 0) + 1;
+            rollTokens.set(element, token);
+            return { element, token, finalText: element.textContent };
+          })
+          .filter(item => /\d/.test(item.finalText));
+
+        if (!targets.length) return;
+
+        const effectiveDuration = reducedMotionQuery.matches ? 180 : duration;
+
+        targets.forEach(({ element }) => {
+          element.classList.remove("value-rolling");
+          void element.offsetWidth;
+          element.classList.add("value-rolling");
+        });
+
+        const startedAt = performance.now();
+        let lastFrame = -Infinity;
+
+        const tick = (now) => {
+          const elapsed = now - startedAt;
+
+          if (elapsed - lastFrame >= 46) {
+            targets.forEach(({ element, token, finalText }) => {
+              if (rollTokens.get(element) === token) {
+                element.textContent = scrambleDigits(finalText);
+              }
+            });
+            lastFrame = elapsed;
+          }
+
+          if (elapsed < effectiveDuration) {
+            requestAnimationFrame(tick);
+            return;
+          }
+
+          targets.forEach(({ element, token, finalText }) => {
+            if (rollTokens.get(element) === token) {
+              element.textContent = finalText;
+              element.classList.remove("value-rolling");
+            }
+          });
+        };
+
+        requestAnimationFrame(tick);
+      }
+
+      function revealChartOnce() {
+        if (!chartRevealPending) return;
+
+        chartRevealPending = false;
+        chartWrap.classList.remove("chart-reveal");
+        void chartWrap.offsetWidth;
+        chartWrap.classList.add("chart-reveal");
+
+        window.setTimeout(
+          () => chartWrap.classList.remove("chart-reveal"),
+          reducedMotionQuery.matches ? 190 : 500
+        );
+      }
+
+      function clearInputValidity() {
+        [
+          totalEarnedInput,
+          totalRaidsInput,
+          extractionRateInput,
+          ammoCostPerShotInput,
+          shotsPerRaidInput,
+          utilityCostPerRaidInput
+        ].forEach(input => {
+          input.removeAttribute("aria-invalid");
+        });
+      }
+
+      function invalidate(input, message) {
+        input.setAttribute("aria-invalid", "true");
+        return { error: message };
+      }
+
+      function validateInputs() {
+        clearInputValidity();
+
+        const totalEarned = parseFlexibleNumber(totalEarnedInput.value);
+        const totalRaids = Number(totalRaidsInput.value);
+        const extractionRate = Number(extractionRateInput.value);
+
+        const ammoCostRaw = ammoCostPerShotInput.value.trim();
+        const shotsRaw = shotsPerRaidInput.value.trim();
+        const utilityRaw = utilityCostPerRaidInput.value.trim();
+
+        const ammoCostPerShot = ammoCostRaw === "" ? 0 : parseFlexibleNumber(ammoCostRaw);
+        const shotsPerRaid = shotsRaw === "" ? 0 : Number(shotsRaw);
+        const utilityCostPerRaid = utilityRaw === "" ? 0 : parseFlexibleNumber(utilityRaw);
+
+        if (!Number.isFinite(totalEarned) || totalEarned < 0) {
+          return invalidate(totalEarnedInput, "Total Earned muss eine gültige Zahl ab 0 sein.");
+        }
+
+        if (!Number.isInteger(totalRaids) || totalRaids <= 0) {
+          return invalidate(totalRaidsInput, "Total Raids muss eine ganze Zahl größer als 0 sein.");
+        }
+
+        if (!Number.isFinite(extractionRate) || extractionRate < 0 || extractionRate > 100) {
+          return invalidate(extractionRateInput, "Extraction Rate muss zwischen 0 und 100 % liegen.");
+        }
+
+        if (extractionRate === 0 && totalEarned > 0) {
+          return invalidate(extractionRateInput, "Bei 0 % Extraction Rate kann Total Earned in diesem Modell nicht größer als 0 sein.");
+        }
+
+        if (!Number.isFinite(ammoCostPerShot) || ammoCostPerShot < 0) {
+          return invalidate(ammoCostPerShotInput, "Ammo Cost / Shot muss eine gültige Zahl ab 0 sein.");
+        }
+
+        if (!Number.isInteger(shotsPerRaid) || shotsPerRaid < 0) {
+          return invalidate(shotsPerRaidInput, "Shots / Raid muss eine ganze Zahl ab 0 sein.");
+        }
+
+        const onlyOneAmmoFieldFilled = (ammoCostRaw === "") !== (shotsRaw === "");
+        if (onlyOneAmmoFieldFilled) {
+          const missingInput = ammoCostRaw === "" ? ammoCostPerShotInput : shotsPerRaidInput;
+          return invalidate(missingInput, "Für Ammo-Kosten müssen Ammo Cost / Shot und Shots / Raid zusammen ausgefüllt werden.");
+        }
+
+        if (!Number.isFinite(utilityCostPerRaid) || utilityCostPerRaid < 0) {
+          return invalidate(utilityCostPerRaidInput, "Utility Cost / Raid muss eine gültige Zahl ab 0 sein.");
+        }
+
+        return {
+          totalEarned,
+          totalRaids,
+          extractionRate,
+          ammoCostPerShot,
+          shotsPerRaid,
+          utilityCostPerRaid
+        };
+      }
+
+      function setScenarioMessage(message) {
+        scenarioList.querySelectorAll(".scenario-preview").forEach(preview => {
+          preview.textContent = message;
+        });
+      }
+
+      function markScenariosWaitingForBase() {
+        setScenarioMessage("Zuerst oben gültige Basisdaten berechnen.");
+      }
+
+      function resolveCurrentLoadoutEconomics() {
+        if (!currentBaseData || !currentLoadoutData) return null;
+
+        const ammoCostPerRaid = currentLoadoutData.ammoProvided
+          ? currentLoadoutData.ammoCost
+          : currentBaseData.ammoCostPerRaid;
+
+        const utilityCostPerRaid = currentLoadoutData.utilityProvided
+          ? currentLoadoutData.utilityCost
+          : currentBaseData.utilityCostPerRaid;
+
+        const consumableCostPerRaid = ammoCostPerRaid + utilityCostPerRaid;
+        const expectedGearLoss =
+          currentBaseData.deathRate * currentLoadoutData.gearCost;
+
+        const expectedProfitPerRaid =
+          currentBaseData.expectedLootPerRaid -
+          consumableCostPerRaid -
+          expectedGearLoss;
+
+        return {
+          ammoCostPerRaid,
+          utilityCostPerRaid,
+          consumableCostPerRaid,
+          expectedGearLoss,
+          expectedProfitPerRaid
+        };
+      }
+
+      function updateCurrentLoadoutResult() {
+        if (!currentLoadoutData || !loadoutResult.classList.contains("visible")) return;
+
+        if (!currentBaseData) {
+          loadoutResultNote.textContent =
+            "Gesamtwert berechnet. Für Profit/Loss zuerst oben gültige Basisdaten berechnen.";
+          return;
+        }
+
+        const economics = resolveCurrentLoadoutEconomics();
+        if (!economics) return;
+
+        const status =
+          Math.abs(economics.expectedProfitPerRaid) <= MONEY_EPSILON
+            ? "Break Even"
+            : (economics.expectedProfitPerRaid > 0 ? "Expected Profit" : "Expected Loss");
+
+        loadoutResultNote.textContent =
+          "Gear Risk: " + formatKoen.format(currentLoadoutData.gearCost) + " Koen" +
+          " · Consumables: " + formatKoen.format(economics.consumableCostPerRaid) + " Koen / Raid" +
+          " · " + status + ": " +
+          (economics.expectedProfitPerRaid > MONEY_EPSILON ? "+" : "") +
+          formatKoen.format(economics.expectedProfitPerRaid) + " Koen / Raid";
+      }
+
+      function calculate() {
+        errorEl.textContent = "";
+
+        const data = validateInputs();
+        if (data.error) {
+          errorEl.textContent = data.error;
+          resultsEl.classList.remove("visible");
+          lastChartData = null;
+          currentBaseData = null;
+          markScenariosWaitingForBase();
+          updateCurrentLoadoutResult();
+          chartSummary.textContent = "Keine gültige Berechnung vorhanden.";
+          emptyChart.textContent = "Werte eingeben und Calculate drücken.";
+          emptyChart.style.display = "grid";
+          drawEmptyChart();
+          return;
+        }
+
+        const {
+          totalEarned,
+          totalRaids,
+          extractionRate,
+          ammoCostPerShot,
+          shotsPerRaid,
+          utilityCostPerRaid
+        } = data;
+
+        const extractionRateDecimal = extractionRate / 100;
+        const deathRate = 1 - extractionRateDecimal;
+        const successfulExtractions = totalRaids * extractionRateDecimal;
+        const earnPerExtraction = successfulExtractions > 0
+          ? totalEarned / successfulExtractions
+          : null;
+
+        const expectedLootPerRaid = totalEarned / totalRaids;
+        const ammoCostPerRaid = ammoCostPerShot * shotsPerRaid;
+        const additionalRaidCosts = ammoCostPerRaid + utilityCostPerRaid;
+
+        const rawAvailableForGear = expectedLootPerRaid - additionalRaidCosts;
+        const availableForGearPerRaid =
+          Math.abs(rawAvailableForGear) <= MONEY_EPSILON ? 0 : rawAvailableForGear;
+
+        const hasGearLoss = deathRate > RATE_EPSILON;
+        const breakEven = hasGearLoss
+          ? availableForGearPerRaid / deathRate
+          : Infinity;
+
+        $("successfulExtractions").textContent =
+          formatNumber.format(successfulExtractions) + " / " + formatKoen.format(totalRaids);
+
+        $("earnPerExtraction").textContent =
+          earnPerExtraction === null
+            ? "—"
+            : formatKoen.format(earnPerExtraction) + " Koen";
+
+        $("deathRateValue").textContent =
+          formatNumber.format(deathRate * 100) + " %";
+
+        $("expectedLootValue").textContent =
+          formatKoen.format(expectedLootPerRaid) + " Koen";
+
+        $("ammoCostPerRaidValue").textContent =
+          formatKoen.format(ammoCostPerRaid) + " Koen";
+
+        $("utilityCostValue").textContent =
+          formatKoen.format(utilityCostPerRaid) + " Koen";
+
+        $("additionalRaidCostsValue").textContent =
+          formatKoen.format(additionalRaidCosts) + " Koen";
+
+        resultsEl.classList.add("visible");
+
+        currentBaseData = {
+          breakEven,
+          expectedLootPerRaid,
+          ammoCostPerRaid,
+          utilityCostPerRaid,
+          additionalRaidCosts,
+          availableForGearPerRaid,
+          deathRate,
+          maxRaids: MAX_CHART_RAIDS,
+          chartMode: "normal"
+        };
+
+        if (availableForGearPerRaid < 0) {
+          currentBaseData.chartMode = "noBreakEven";
+          lastChartData = null;
+          $("breakEvenValue").textContent = "No Break Even";
+          setScenarioMessage("Keine Prozent-Szenarien: Raid-Kosten liegen über Expected Loot.");
+          chartSummary.textContent =
+            "Die laufenden Raid-Kosten liegen über dem erwarteten Loot pro Raid; ein nicht-negativer Break-Even-Loadout existiert nicht.";
+          emptyChart.textContent =
+            "Raid-Kosten liegen über Expected Loot / Raid. Selbst 0 Koen Gear wäre im Erwartungswert negativ.";
+          emptyChart.style.display = "grid";
+          updateLegend([]);
+          updateCurrentLoadoutResult();
+          drawEmptyChart();
+          return;
+        }
+
+        if (!hasGearLoss) {
+          currentBaseData.chartMode = "unbounded";
+          lastChartData = null;
+          $("breakEvenValue").textContent = "∞";
+          setScenarioMessage("Bei 100 % Extraction gibt es keinen endlichen Gear-Break-Even.");
+          chartSummary.textContent =
+            "Bei 100 Prozent Extraction Rate entsteht kein erwarteter Gear-Verlust; der Gear-Break-Even ist in diesem Modell unbegrenzt.";
+          emptyChart.textContent =
+            availableForGearPerRaid === 0
+              ? "Bei 100 % Extraction gleichen Loot und laufende Raid-Kosten sich bereits aus; Gear erzeugt keinen erwarteten Verlust."
+              : "Bei 100 % Extraction entsteht kein erwarteter Gear-Verlust; der Gear-Break-Even ist unbegrenzt.";
+          emptyChart.style.display = "grid";
+          updateLegend([]);
+          updateCurrentLoadoutResult();
+
+          rollResultText([
+            $("successfulExtractions"),
+            $("earnPerExtraction"),
+            $("deathRateValue"),
+            $("expectedLootValue"),
+            $("ammoCostPerRaidValue"),
+            $("utilityCostValue"),
+            $("additionalRaidCostsValue")
+          ]);
+
+          drawEmptyChart();
+          return;
+        }
+
+        $("breakEvenValue").textContent =
+          formatKoen.format(Math.max(0, breakEven)) + " Koen";
+
+        if (breakEven <= MONEY_EPSILON) {
+          setScenarioMessage("Bei 0 Koen Break Even sind Prozent-Ziele nicht definiert.");
+        }
+
+        emptyChart.textContent = "Werte eingeben und Calculate drücken.";
+        updateCurrentLoadoutResult();
+
+        rollResultText([
+          $("breakEvenValue"),
+          $("successfulExtractions"),
+          $("earnPerExtraction"),
+          $("deathRateValue"),
+          $("expectedLootValue"),
+          $("ammoCostPerRaidValue"),
+          $("utilityCostValue"),
+          $("additionalRaidCostsValue")
+        ]);
+
+        chartRevealPending = true;
+        rebuildScenarioChart();
+      }
+
+      function niceStep(rawStep) {
+        if (!Number.isFinite(rawStep) || rawStep <= 0) return 1;
+
+        const exponent = Math.floor(Math.log10(rawStep));
+        const fraction = rawStep / Math.pow(10, exponent);
+
+        let niceFraction;
+        if (fraction <= 1) niceFraction = 1;
+        else if (fraction <= 2) niceFraction = 2;
+        else if (fraction <= 2.5) niceFraction = 2.5;
+        else if (fraction <= 5) niceFraction = 5;
+        else niceFraction = 10;
+
+        return niceFraction * Math.pow(10, exponent);
+      }
+
+      function buildYAxis(rawMin, rawMax, targetTicks = 8) {
+        if (!Number.isFinite(rawMin) || !Number.isFinite(rawMax)) {
+          return { min: -1, max: 1, step: 0.25 };
+        }
+
+        if (rawMin === rawMax) {
+          const pad = Math.max(Math.abs(rawMin) * 0.1, 1);
+          rawMin -= pad;
+          rawMax += pad;
+        }
+
+        const range = rawMax - rawMin;
+        const padding = Math.max(range * 0.06, Math.max(Math.abs(rawMin), Math.abs(rawMax), 1) * 0.02);
+
+        const paddedMin = rawMin - padding;
+        const paddedMax = rawMax + padding;
+
+        const step = niceStep((paddedMax - paddedMin) / targetTicks);
+        let min = Math.floor(paddedMin / step) * step;
+        let max = Math.ceil(paddedMax / step) * step;
+
+        // 0 muss sichtbar bleiben, weil Break Even zentral ist.
+        min = Math.min(min, 0);
+        max = Math.max(max, 0);
+
+        return { min, max, step };
+      }
+
+      function formatAxisValue(value) {
+        const abs = Math.abs(value);
+        const trim = (v, digits) => Number(v.toFixed(digits)).toString();
+
+        if (abs >= 1_000_000_000) return trim(value / 1_000_000_000, abs < 10_000_000_000 ? 2 : 1) + "B";
+        if (abs >= 1_000_000) return trim(value / 1_000_000, abs < 10_000_000 ? 2 : 1) + "M";
+        if (abs >= 1_000) return trim(value / 1_000, abs < 100_000 ? 1 : 0) + "k";
+        return trim(value, abs < 100 ? 1 : 0);
+      }
+
+      function setupCanvas() {
+        const rect = chartWrap.getBoundingClientRect();
+        const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+        const width = Math.max(1, Math.floor(rect.width));
+        const height = Math.max(280, Math.floor(rect.height));
+
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        canvas.style.width = width + "px";
+        canvas.style.height = height + "px";
+
+        const ctx = canvas.getContext("2d");
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        return { ctx, width, height };
+      }
+
+      function drawEmptyChart() {
+        lastRenderedChart = null;
+        if (chartTooltip) chartTooltip.style.display = "none";
+        const { ctx, width, height } = setupCanvas();
+        ctx.clearRect(0, 0, width, height);
+
+        ctx.strokeStyle = "rgba(255,255,255,.07)";
+        ctx.lineWidth = 1;
+
+        const pad = {
+          left: width < 360 ? 48 : 64,
+          right: width < 360 ? 14 : 20,
+          top: 24,
+          bottom: 45
+        };
+        const plotW = Math.max(1, width - pad.left - pad.right);
+        const plotH = Math.max(1, height - pad.top - pad.bottom);
+
+        for (let i = 0; i <= 10; i++) {
+          const x = pad.left + (plotW * i / 10);
+          ctx.beginPath();
+          ctx.moveTo(x, pad.top);
+          ctx.lineTo(x, pad.top + plotH);
+          ctx.stroke();
+        }
+
+        for (let i = 0; i <= 6; i++) {
+          const y = pad.top + (plotH * i / 6);
+          ctx.beginPath();
+          ctx.moveTo(pad.left, y);
+          ctx.lineTo(pad.left + plotW, y);
+          ctx.stroke();
+        }
+      }
+
+      function drawChart(data) {
+        const { ctx, width, height } = setupCanvas();
+        ctx.clearRect(0, 0, width, height);
+
+        const styles = getComputedStyle(document.documentElement);
+        const colors = {
+          grid: styles.getPropertyValue("--grid").trim(),
+          axis: styles.getPropertyValue("--axis").trim(),
+          zero: styles.getPropertyValue("--zero").trim(),
+          muted: styles.getPropertyValue("--muted").trim(),
+          goodStrong: styles.getPropertyValue("--good-strong").trim(),
+          good: styles.getPropertyValue("--good").trim(),
+          neutral: styles.getPropertyValue("--neutral").trim(),
+          loss: styles.getPropertyValue("--loss").trim(),
+          lossStrong: styles.getPropertyValue("--loss-strong").trim()
+        };
+
+        const pad = {
+          left: width < 360 ? 48 : (width < 520 ? 54 : 72),
+          right: width < 360 ? 14 : 22,
+          top: 24,
+          bottom: 50
+        };
+
+        const plotW = Math.max(1, width - pad.left - pad.right);
+        const plotH = Math.max(1, height - pad.top - pad.bottom);
+
+        const {
+          scenarios,
+          expectedLootPerRaid,
+          availableForGearPerRaid,
+          deathRate,
+          maxRaids
+        } = data;
+
+        const series = [
+          {
+            name: "Break Even",
+            color: colors.neutral,
+            loadout: availableForGearPerRaid / deathRate,
+            type: "breakEven"
+          },
+          ...scenarios
+        ].map((item, seriesIndex) => {
+          const slope = item.type === "currentLoadout"
+            ? expectedLootPerRaid - item.fixedCosts - (deathRate * item.loadout)
+            : availableForGearPerRaid - (deathRate * item.loadout);
+
+          // Kleine, deterministische Schwankungen für eine natürlichere Darstellung.
+          // Sie verändern nicht die zugrunde liegende Erwartungsrechnung.
+          const points = [];
+
+          for (let raid = 0; raid <= maxRaids; raid++) {
+            const baseValue = slope * raid;
+            let value = baseValue;
+
+            if (item.type === "scenario" && raid > 0) {
+              // Echte kleine Zickzack-Bewegung pro Raid:
+              // abwechselnd über/unter dem Grundtrend, ohne weiche Sinus-Wellen.
+              const direction = raid % 2 === 0 ? 1 : -1;
+
+              // Kleine deterministische Variation, damit die Zacken nicht völlig identisch aussehen.
+              const seed = Math.sin((raid * 19.193) + ((seriesIndex + 1) * 47.117)) * 15731.743;
+              const fraction = seed - Math.floor(seed);
+              const variation = 0.72 + (fraction * 0.28);
+
+              // Dezent: ungefähr 22–31 % eines normalen Raid-Schritts.
+              const amplitude = Math.abs(slope) * 0.31;
+              const fluctuation = direction * amplitude * variation;
+
+              value += fluctuation;
+            }
+
+            points.push(value);
+          }
+
+          return {
+            ...item,
+            slope,
+            points
+          };
+        });
+
+        const allValues = series.flatMap(s => s.points);
+        const rawMax = Math.max(...allValues, 0);
+        const rawMin = Math.min(...allValues, 0);
+
+        // Engere Skala auf Basis der tatsächlich sichtbaren Werte.
+        // 0 bleibt enthalten, aber die Achse wird nicht künstlich symmetrisch aufgeblasen.
+        const yAxis = buildYAxis(rawMin, rawMax, 8);
+        const yMin = yAxis.min;
+        const yMax = yAxis.max;
+        const yStep = yAxis.step;
+
+        const xToPx = (raid) => pad.left + (raid / maxRaids) * plotW;
+        const yToPx = (value) => pad.top + ((yMax - value) / (yMax - yMin)) * plotH;
+
+        // Horizontal grid + präzisere Labels
+        ctx.font = "11px Inter, system-ui, sans-serif";
+        ctx.textBaseline = "middle";
+
+        const tickCount = Math.round((yMax - yMin) / yStep);
+
+        for (let i = 0; i <= tickCount; i++) {
+          const value = yMax - (yStep * i);
+          const y = yToPx(value);
+
+          ctx.strokeStyle = Math.abs(value) < (yStep * 0.001) ? colors.zero : colors.grid;
+          ctx.lineWidth = Math.abs(value) < (yStep * 0.001) ? 1.3 : 1;
+
+          ctx.beginPath();
+          ctx.moveTo(pad.left, y);
+          ctx.lineTo(pad.left + plotW, y);
+          ctx.stroke();
+
+          ctx.fillStyle = colors.muted;
+          ctx.textAlign = "right";
+          ctx.fillText(formatAxisValue(value), pad.left - 10, y);
+        }
+
+        // Vertical grid + x labels
+        for (let raid = 0; raid <= maxRaids; raid += 5) {
+          const x = xToPx(raid);
+
+          ctx.strokeStyle = colors.grid;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x, pad.top);
+          ctx.lineTo(x, pad.top + plotH);
+          ctx.stroke();
+
+          ctx.fillStyle = colors.muted;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "top";
+          ctx.fillText(String(raid), x, pad.top + plotH + 10);
+        }
+
+        // Axis labels
+        ctx.fillStyle = colors.muted;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        ctx.fillText("Raids", pad.left + plotW / 2, height - 6);
+
+        ctx.save();
+        ctx.translate(14, pad.top + plotH / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        ctx.fillText("Profit / Loss (Koen)", 0, 0);
+        ctx.restore();
+
+        // Series
+        series.forEach((s) => {
+          ctx.strokeStyle = s.color;
+          ctx.lineWidth = s.type === "currentLoadout" ? 2.7 : (s.type === "breakEven" ? 2.1 : 2.35);
+          ctx.globalAlpha = s.type === "breakEven" ? 0.95 : 0.92;
+          ctx.setLineDash(
+            s.type === "breakEven"
+              ? [7, 6]
+              : (s.type === "currentLoadout" ? [3, 3] : [])
+          );
+
+          ctx.beginPath();
+
+          for (let raid = 0; raid <= maxRaids; raid++) {
+            const value = s.points[raid];
+            const x = xToPx(raid);
+            const y = yToPx(value);
+
+            if (raid === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+
+          ctx.stroke();
+        });
+
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+
+        // Border around plot
+        ctx.strokeStyle = colors.axis;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(pad.left, pad.top, plotW, plotH);
+
+        // Geometrie für Hover-Interaktion merken.
+        lastRenderedChart = {
+          pad,
+          plotW,
+          plotH,
+          maxRaids,
+          yMin,
+          yMax,
+          series
+        };
+      }
+
+
+      function drawHoverPoint(raid, seriesIndex) {
+        if (!lastChartData || !lastRenderedChart) return;
+
+        // Basisdiagramm neu zeichnen, dann Hover-Punkt darüber.
+        drawChart(lastChartData);
+
+        const chart = lastRenderedChart;
+        const s = chart.series[seriesIndex];
+        if (!s) return;
+
+        const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+        const ctx = canvas.getContext("2d");
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        const x = chart.pad.left + (raid / chart.maxRaids) * chart.plotW;
+        const value = s.points[raid];
+        const y = chart.pad.top + ((chart.yMax - value) / (chart.yMax - chart.yMin)) * chart.plotH;
+
+        ctx.beginPath();
+        ctx.arc(x, y, 4.5, 0, Math.PI * 2);
+        ctx.fillStyle = s.color;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(x, y, 7, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255,255,255,.72)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        return { x, y, value, name: s.name, color: s.color };
+      }
+
+      function handleChartPointer(event) {
+        if (!lastRenderedChart || !lastChartData) {
+          chartTooltip.style.display = "none";
+          return;
+        }
+
+        const rect = chartWrap.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        const chart = lastRenderedChart;
+
+        if (
+          x < chart.pad.left ||
+          x > chart.pad.left + chart.plotW ||
+          y < chart.pad.top ||
+          y > chart.pad.top + chart.plotH
+        ) {
+          if (lastHoverKey) {
+            lastHoverKey = "";
+            chartTooltip.style.display = "none";
+            drawChart(lastChartData);
+          }
+          return;
+        }
+
+        // Nächsten Raid auf der X-Achse wählen.
+        const raidFloat = ((x - chart.pad.left) / chart.plotW) * chart.maxRaids;
+        const raid = Math.max(0, Math.min(chart.maxRaids, Math.round(raidFloat)));
+
+        // Nächste Linie zu diesem Raid bestimmen.
+        let nearestIndex = -1;
+        let nearestDistance = Infinity;
+
+        chart.series.forEach((s, index) => {
+          const value = s.points[raid];
+          const sy = chart.pad.top + ((chart.yMax - value) / (chart.yMax - chart.yMin)) * chart.plotH;
+          const distance = Math.abs(y - sy);
+
+          if (distance < nearestDistance) {
+            nearestDistance = distance;
+            nearestIndex = index;
+          }
+        });
+
+        // Nur anzeigen, wenn die Maus tatsächlich nahe genug an einer Linie ist.
+        if (nearestIndex < 0 || nearestDistance > 18) {
+          if (lastHoverKey) {
+            lastHoverKey = "";
+            chartTooltip.style.display = "none";
+            drawChart(lastChartData);
+          }
+          return;
+        }
+
+        const hoverKey = raid + ":" + nearestIndex;
+        if (hoverKey === lastHoverKey) return;
+        lastHoverKey = hoverKey;
+
+        const point = drawHoverPoint(raid, nearestIndex);
+        if (!point) return;
+
+        const prefix = point.value > 0 ? "+" : "";
+        chartTooltip.innerHTML =
+          '<div class="tt-name">' + point.name + '</div>' +
+          '<div class="tt-row">Raid: <span class="tt-value">' + raid + '</span></div>' +
+          '<div class="tt-row">Profit / Loss: <span class="tt-value">' +
+          prefix + formatKoen.format(point.value) + ' Koen</span></div>';
+
+        chartTooltip.style.display = "block";
+
+        const tooltipWidth = 150;
+        const nearRight = point.x > rect.width - tooltipWidth - 24;
+        chartTooltip.style.transform = nearRight
+          ? "translate(calc(-100% - 10px), -50%)"
+          : "translate(10px, -50%)";
+
+        chartTooltip.style.left = point.x + "px";
+        const clampedTooltipY = Math.max(24, Math.min(rect.height - 24, point.y));
+        chartTooltip.style.top = clampedTooltipY + "px";
+      }
+
+      function clearChartHover() {
+        lastHoverKey = "";
+        chartTooltip.style.display = "none";
+        if (lastChartData) drawChart(lastChartData);
+      }
+
+
+      function scenarioColor(index, type) {
+        const styles = getComputedStyle(document.documentElement);
+        const profitColors = [
+          styles.getPropertyValue("--good").trim(),
+          styles.getPropertyValue("--good-strong").trim(),
+          "#c9ddce",
+          "#abcdb2"
+        ];
+        const lossColors = [
+          styles.getPropertyValue("--loss").trim(),
+          styles.getPropertyValue("--loss-strong").trim(),
+          "#d4b4b4",
+          "#c99797"
+        ];
+
+        const palette = type === "profit" ? profitColors : lossColors;
+        return palette[index % palette.length];
+      }
+
+      function buildCurrentLoadoutScenario() {
+        if (
+          !currentBaseData ||
+          currentBaseData.chartMode !== "normal" ||
+          !currentLoadoutData
+        ) {
+          return null;
+        }
+
+        const economics = resolveCurrentLoadoutEconomics();
+        if (!economics) return null;
+
+        return {
+          id: "current-loadout",
+          name: "Current Loadout",
+          color: "#d6d6d6",
+          loadout: currentLoadoutData.gearCost,
+          totalCost: currentLoadoutData.totalCost,
+          fixedCosts: economics.consumableCostPerRaid,
+          type: "currentLoadout"
+        };
+      }
+
+      function readScenarios() {
+        const rows = [...scenarioList.querySelectorAll(".scenario-row")];
+
+        return rows.map((row, index) => {
+          const type = row.querySelector(".scenario-type").value;
+          const percentInput = row.querySelector(".scenario-percent");
+          const rawPercent = percentInput.value.trim();
+          const percent = Number(rawPercent);
+          const preview = row.querySelector(".scenario-preview");
+
+          if (!currentBaseData) {
+            preview.textContent = "Zuerst oben gültige Basisdaten berechnen.";
+            return null;
+          }
+
+          if (rawPercent === "" || !Number.isFinite(percent) || percent < 0) {
+            preview.textContent = "Prozentwert ab 0 eingeben.";
+            return null;
+          }
+
+          if (currentBaseData.breakEven <= MONEY_EPSILON) {
+            preview.textContent = "Bei 0 Koen Break Even sind Prozent-Ziele nicht definiert.";
+            return null;
+          }
+
+          let roi = percent / 100;
+          let loadout;
+
+          if (type === "profit") {
+            // ROI = Expected Profit / Expected Gear Loss
+            // Loadout = Break Even / (1 + ROI)
+            loadout = currentBaseData.breakEven / (1 + roi);
+          } else {
+            // Loss in dieser ROI-Definition ist physikalisch auf <100 % begrenzt:
+            // Bei 100 % Verlust wäre der erwartete Loot 0.
+            if (percent >= 100) {
+              preview.innerHTML = "<strong>Loss muss unter 100 % liegen.</strong>";
+              return null;
+            }
+
+            roi = -roi;
+            loadout = currentBaseData.breakEven / (1 + roi);
+          }
+
+          const expectedGearLoss = currentBaseData.deathRate * loadout;
+          const expectedProfit =
+            currentBaseData.availableForGearPerRaid - expectedGearLoss;
+          const signedPercent = type === "profit" ? percent : -percent;
+
+          preview.innerHTML =
+            "<strong>" + formatKoen.format(loadout) + " Koen Loadout</strong>" +
+            " · " + (expectedProfit >= 0 ? "+" : "") +
+            formatKoen.format(expectedProfit) + " Koen / Raid";
+
+          return {
+            id: row.dataset.scenarioId,
+            name: (type === "profit" ? "Profit " : "Loss ") +
+              (type === "profit" ? "+" : "−") + formatNumber.format(percent) + " %",
+            color: scenarioColor(index, type),
+            loadout,
+            type: "scenario",
+            scenarioType: type,
+            percent: signedPercent
+          };
+        }).filter(Boolean);
+      }
+
+      function updateLegend(scenarios) {
+        chartLegend.innerHTML = "";
+
+        const breakEvenItem = document.createElement("span");
+        breakEvenItem.className = "legend-item";
+        breakEvenItem.style.color = "var(--neutral)";
+        breakEvenItem.innerHTML = '<span class="legend-line"></span>Break Even';
+        chartLegend.appendChild(breakEvenItem);
+
+        scenarios.forEach(scenario => {
+          const item = document.createElement("span");
+          item.className = "legend-item";
+          item.style.color = scenario.color;
+
+          const line = document.createElement("span");
+          line.className = "legend-line";
+
+          item.appendChild(line);
+          item.appendChild(document.createTextNode(scenario.name));
+          chartLegend.appendChild(item);
+        });
+      }
+
+      function rebuildScenarioChart() {
+        if (!currentBaseData || currentBaseData.chartMode !== "normal") {
+          lastChartData = null;
+          updateLegend([]);
+          emptyChart.style.display = "grid";
+          drawEmptyChart();
+          return;
+        }
+
+        const scenarios = readScenarios();
+        const currentLoadoutScenario = buildCurrentLoadoutScenario();
+        if (currentLoadoutScenario) {
+          scenarios.push(currentLoadoutScenario);
+        }
+
+        lastChartData = {
+          breakEven: currentBaseData.breakEven,
+          expectedLootPerRaid: currentBaseData.expectedLootPerRaid,
+          additionalRaidCosts: currentBaseData.additionalRaidCosts,
+          availableForGearPerRaid: currentBaseData.availableForGearPerRaid,
+          deathRate: currentBaseData.deathRate,
+          maxRaids: currentBaseData.maxRaids,
+          scenarios
+        };
+
+        updateLegend(scenarios);
+
+        const scenarioSummary = scenarios.length
+          ? " Zusätzlich angezeigt: " + scenarios.map(s => s.name).join(", ") + "."
+          : " Es sind keine zusätzlichen Szenarien aktiv.";
+        chartSummary.textContent =
+          "Break-Even-Linie über " + currentBaseData.maxRaids + " Raids." + scenarioSummary;
+
+        emptyChart.style.display = "none";
+        drawChart(lastChartData);
+        revealChartOnce();
+      }
+
+      function createScenarioRow(type = "profit", percent = "") {
+        scenarioCounter += 1;
+
+        const row = document.createElement("div");
+        row.className = "scenario-row";
+        row.dataset.scenarioId = String(scenarioCounter);
+
+        const typeSelect = document.createElement("select");
+        typeSelect.className = "scenario-type";
+        typeSelect.setAttribute("aria-label", "Profit oder Loss");
+        typeSelect.innerHTML =
+          '<option value="profit">Profit</option>' +
+          '<option value="loss">Loss</option>';
+        typeSelect.value = type;
+
+        const percentWrap = document.createElement("div");
+        percentWrap.className = "input-wrap has-suffix";
+
+        const percentInput = document.createElement("input");
+        percentInput.className = "scenario-percent";
+        percentInput.type = "number";
+        percentInput.min = "0";
+        percentInput.step = "0.1";
+        percentInput.placeholder = "z. B. 2";
+        percentInput.value = percent;
+        percentInput.setAttribute("aria-label", "Prozentwert");
+
+        const suffix = document.createElement("span");
+        suffix.className = "suffix";
+        suffix.textContent = "%";
+
+        percentWrap.appendChild(percentInput);
+        percentWrap.appendChild(suffix);
+
+        const preview = document.createElement("div");
+        preview.className = "scenario-preview";
+        preview.textContent = currentBaseData
+          ? "Prozentwert eingeben."
+          : "Zuerst oben gültige Basisdaten berechnen.";
+
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "remove-scenario";
+        remove.setAttribute("aria-label", "Linie entfernen");
+        remove.textContent = "×";
+
+        row.appendChild(typeSelect);
+        row.appendChild(percentWrap);
+        row.appendChild(preview);
+        row.appendChild(remove);
+
+        if (scenarioEmpty) scenarioEmpty.style.display = "none";
+        scenarioList.appendChild(row);
+
+        const update = () => rebuildScenarioChart();
+        typeSelect.addEventListener("change", update);
+        percentInput.addEventListener("input", update);
+
+        remove.addEventListener("click", () => {
+          row.remove();
+          if (!scenarioList.querySelector(".scenario-row") && scenarioEmpty) {
+            scenarioEmpty.style.display = "block";
+          }
+          rebuildScenarioChart();
+        });
+
+        percentInput.focus();
+        rebuildScenarioChart();
+      }
+
+
+      function calculateLoadout() {
+        loadoutError.textContent = "";
+
+        const values = {};
+        const provided = {};
+
+        for (const [key, input] of Object.entries(loadoutFields)) {
+          input.removeAttribute("aria-invalid");
+
+          const raw = input.value.trim();
+          provided[key] = raw !== "";
+
+          if (raw === "") {
+            values[key] = 0;
+            continue;
+          }
+
+          const value = parseFlexibleNumber(raw);
+
+          if (!Number.isFinite(value) || value < 0) {
+            input.setAttribute("aria-invalid", "true");
+            loadoutError.textContent =
+              "Alle Loadout-Kosten müssen gültige Zahlen ab 0 sein.";
+            return;
+          }
+
+          values[key] = value;
+        }
+
+        const gearCost =
+          values.weapon +
+          values.helmet +
+          values.armor +
+          values.headset +
+          values.rig +
+          values.backpack;
+
+        const ammoCost = values.ammo;
+        const utilityCost = values.utility;
+        const totalCost = gearCost + ammoCost + utilityCost;
+
+        currentLoadoutData = {
+          totalCost,
+          gearCost,
+          ammoCost,
+          utilityCost,
+          ammoProvided: provided.ammo,
+          utilityProvided: provided.utility
+        };
+
+        totalLoadoutCostValue.textContent =
+          formatKoen.format(totalCost) + " Koen";
+
+        loadoutResult.classList.add("visible");
+        updateCurrentLoadoutResult();
+        rollResultText([totalLoadoutCostValue], 430);
+
+        if (currentBaseData && currentBaseData.chartMode === "normal") {
+          chartRevealPending = true;
+          rebuildScenarioChart();
+        }
+      }
+
+      function redraw() {
+        if (lastChartData) drawChart(lastChartData);
+        else drawEmptyChart();
+      }
+
+      calculateBtn.addEventListener("click", calculate);
+
+      addScenarioBtn.addEventListener("click", () => createScenarioRow());
+
+      calculateLoadoutBtn.addEventListener("click", calculateLoadout);
+
+      [
+        totalEarnedInput,
+        totalRaidsInput,
+        extractionRateInput,
+        ammoCostPerShotInput,
+        shotsPerRaidInput,
+        utilityCostPerRaidInput
+      ].forEach(input => {
+        input.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") calculate();
+        });
+      });
+
+      loadoutInputs.forEach(input => {
+        input.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") calculateLoadout();
+        });
+      });
+
+      let resizeTimer;
+      const scheduleRedraw = () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(redraw, 80);
+      };
+
+      if ("ResizeObserver" in window) {
+        const resizeObserver = new ResizeObserver(scheduleRedraw);
+        resizeObserver.observe(chartWrap);
+      } else {
+        window.addEventListener("resize", scheduleRedraw);
+      }
+
+      canvas.addEventListener("pointermove", (event) => {
+        if (event.pointerType === "touch") return;
+        handleChartPointer(event);
+      });
+
+      canvas.addEventListener("pointerup", (event) => {
+        if (event.pointerType !== "touch") return;
+        handleChartPointer(event);
+      });
+
+      canvas.addEventListener("pointerleave", (event) => {
+        if (event.pointerType === "touch") return;
+        clearChartHover();
+      });
+
+      drawEmptyChart();
+    })();
+  </script>
+</body>
+</html>
